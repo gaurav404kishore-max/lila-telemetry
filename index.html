@@ -1,0 +1,1558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LILA BLACK — Level Designer Telemetry</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap');
+
+  :root {
+    --bg: #0a0c0f;
+    --surface: #111418;
+    --surface2: #181c22;
+    --surface3: #1e242c;
+    --border: #252c36;
+    --border2: #2e3744;
+    --text: #e8edf4;
+    --text2: #7d8fa3;
+    --text3: #4a5668;
+    --accent: #00e5ff;
+    --accent2: #7c4dff;
+    --kill: #ff4455;
+    --death: #ff8c00;
+    --storm: #b04dff;
+    --loot: #00e676;
+    --human: #00b4d8;
+    --bot: #546e7a;
+    --warn: #ffd740;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Syne', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* HEADER */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 0 20px;
+    height: 52px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    position: relative;
+  }
+
+  .logo {
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  .logo span { color: var(--text3); }
+
+  .header-stats {
+    display: flex;
+    gap: 20px;
+    margin-left: auto;
+    margin-right: 10px;
+  }
+
+  .hstat {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--text3);
+  }
+
+  .hstat strong {
+    color: var(--text2);
+    font-size: 12px;
+  }
+
+  .hstat-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
+  /* MAIN LAYOUT */
+  .app-body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* LEFT SIDEBAR */
+  .sidebar {
+    width: 260px;
+    flex-shrink: 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .sidebar-section {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sidebar-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text3);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  /* MAP SELECT */
+  .map-tabs {
+    display: flex;
+    gap: 4px;
+  }
+
+  .map-tab {
+    flex: 1;
+    padding: 7px 4px;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text3);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    background: transparent;
+    transition: all 0.15s;
+    font-family: 'Space Mono', monospace;
+    letter-spacing: 0.04em;
+  }
+
+  .map-tab:hover { border-color: var(--border2); color: var(--text2); background: var(--surface2); }
+  .map-tab.active { background: var(--accent); color: #000; border-color: var(--accent); }
+
+  /* DATE FILTER */
+  .date-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .pill {
+    padding: 4px 9px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    font-size: 10px;
+    font-family: 'Space Mono', monospace;
+    color: var(--text3);
+    cursor: pointer;
+    transition: all 0.15s;
+    background: transparent;
+  }
+
+  .pill:hover { border-color: var(--border2); color: var(--text2); background: var(--surface2); }
+  .pill.active { background: var(--surface3); border-color: var(--accent2); color: var(--accent); }
+
+  /* OVERLAY TOGGLES */
+  .overlay-toggles {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    padding: 5px 0;
+  }
+
+  .toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text2);
+  }
+
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+  .toggle-switch {
+    width: 32px; height: 16px;
+    border-radius: 8px;
+    background: var(--border);
+    position: relative;
+    transition: background 0.2s;
+    cursor: pointer;
+    border: none;
+    flex-shrink: 0;
+  }
+
+  .toggle-switch::after {
+    content: '';
+    position: absolute;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: var(--text3);
+    top: 2px; left: 2px;
+    transition: all 0.2s;
+  }
+
+  .toggle-switch.on { background: var(--accent2); }
+  .toggle-switch.on::after { left: 18px; background: white; }
+
+  /* HEATMAP SELECT */
+  .heatmap-select {
+    width: 100%;
+    padding: 7px 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text2);
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    outline: none;
+  }
+
+  .heatmap-select:focus { border-color: var(--accent2); }
+
+  /* MATCH LIST */
+  .match-list-wrap {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+  }
+
+  .match-list-wrap::-webkit-scrollbar { width: 4px; }
+  .match-list-wrap::-webkit-scrollbar-track { background: transparent; }
+  .match-list-wrap::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  .match-search {
+    width: 100%;
+    padding: 7px 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    outline: none;
+    margin-bottom: 8px;
+  }
+
+  .match-search:focus { border-color: var(--border2); }
+  .match-search::placeholder { color: var(--text3); }
+
+  .match-card {
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    margin-bottom: 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+    background: transparent;
+  }
+
+  .match-card:hover { background: var(--surface2); border-color: var(--border2); }
+  .match-card.active { background: var(--surface3); border-color: var(--accent2); }
+
+  .match-id-text {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    color: var(--text3);
+    margin-bottom: 4px;
+  }
+
+  .match-meta {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .badge {
+    font-size: 9px;
+    font-family: 'Space Mono', monospace;
+    padding: 2px 5px;
+    border-radius: 3px;
+    background: var(--surface3);
+    color: var(--text3);
+    font-weight: 700;
+  }
+
+  .badge.human { background: rgba(0,180,216,0.15); color: var(--human); }
+  .badge.bot { background: rgba(84,110,122,0.2); color: var(--bot); }
+  .badge.kill { background: rgba(255,68,85,0.15); color: var(--kill); }
+  .badge.storm { background: rgba(176,77,255,0.15); color: var(--storm); }
+  .badge.loot { background: rgba(0,230,118,0.15); color: var(--loot); }
+
+  /* CENTER - MAP CANVAS */
+  .map-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .map-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .toolbar-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--text3);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+  }
+
+  .map-name-badge {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent);
+    background: rgba(0,229,255,0.1);
+    padding: 3px 10px;
+    border-radius: 3px;
+    border: 1px solid rgba(0,229,255,0.2);
+  }
+
+  .timeline-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+  }
+
+  .play-btn {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--accent2);
+    border: none;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    color: white;
+    font-size: 11px;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+
+  .play-btn:hover { background: #9c6fff; }
+
+  .timeline-slider {
+    width: 160px;
+    accent-color: var(--accent2);
+    cursor: pointer;
+  }
+
+  .timeline-val {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--text3);
+    width: 50px;
+    text-align: right;
+  }
+
+  .canvas-container {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    cursor: grab;
+    background: #050709;
+  }
+
+  .canvas-container:active { cursor: grabbing; }
+
+  #mapCanvas {
+    position: absolute;
+    top: 0; left: 0;
+    transform-origin: 0 0;
+    image-rendering: pixelated;
+  }
+
+  #overlayCanvas {
+    position: absolute;
+    top: 0; left: 0;
+    transform-origin: 0 0;
+    pointer-events: none;
+  }
+
+  .zoom-controls {
+    position: absolute;
+    bottom: 14px;
+    right: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .zoom-btn {
+    width: 28px; height: 28px;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    color: var(--text2);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+  }
+
+  .zoom-btn:hover { background: var(--surface2); color: var(--text); }
+
+  .map-coords {
+    position: absolute;
+    bottom: 14px;
+    left: 14px;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--text3);
+    background: rgba(10,12,15,0.7);
+    padding: 4px 8px;
+    border-radius: 3px;
+    pointer-events: none;
+  }
+
+  /* RIGHT PANEL - INSIGHTS */
+  .right-panel {
+    width: 280px;
+    flex-shrink: 0;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .panel-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .panel-header-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text2);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .insight-icon {
+    width: 20px; height: 20px;
+    background: rgba(0,229,255,0.15);
+    border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px;
+  }
+
+  .panel-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+  }
+
+  .panel-body::-webkit-scrollbar { width: 3px; }
+  .panel-body::-webkit-scrollbar-thumb { background: var(--border2); }
+
+  /* INSIGHT CARDS */
+  .insight-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 10px;
+  }
+
+  .insight-card.warn { border-left: 3px solid var(--warn); }
+  .insight-card.danger { border-left: 3px solid var(--kill); }
+  .insight-card.info { border-left: 3px solid var(--accent); }
+  .insight-card.good { border-left: 3px solid var(--loot); }
+
+  .insight-tag {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--text3);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .insight-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 6px;
+    line-height: 1.4;
+  }
+
+  .insight-body {
+    font-size: 11px;
+    color: var(--text2);
+    line-height: 1.5;
+    margin-bottom: 8px;
+  }
+
+  .insight-action {
+    font-size: 10px;
+    color: var(--accent);
+    font-weight: 600;
+    background: rgba(0,229,255,0.08);
+    padding: 5px 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(0,229,255,0.15);
+  }
+
+  /* STAT GRID */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+
+  .stat-box {
+    background: var(--surface3);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 9px 10px;
+  }
+
+  .stat-val {
+    font-family: 'Space Mono', monospace;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1;
+    margin-bottom: 2px;
+  }
+
+  .stat-val.accent { color: var(--accent); }
+  .stat-val.kill { color: var(--kill); }
+  .stat-val.storm { color: var(--storm); }
+  .stat-val.loot { color: var(--loot); }
+
+  .stat-lbl {
+    font-size: 10px;
+    color: var(--text3);
+  }
+
+  /* Legend */
+  .legend {
+    padding: 10px 12px;
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .legend-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--text3);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .legend-items {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    color: var(--text2);
+  }
+
+  .legend-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .legend-line {
+    width: 14px; height: 2px;
+    border-radius: 1px;
+    flex-shrink: 0;
+  }
+
+  /* LOADING */
+  .loading-overlay {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+    gap: 16px;
+  }
+
+  .loading-logo {
+    font-family: 'Space Mono', monospace;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.2em;
+  }
+
+  .loading-bar {
+    width: 200px;
+    height: 2px;
+    background: var(--border);
+    border-radius: 1px;
+    overflow: hidden;
+  }
+
+  .loading-progress {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 1px;
+    width: 0%;
+    transition: width 0.3s;
+  }
+
+  .loading-text {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--text3);
+  }
+
+  .spinner {
+    width: 20px; height: 20px;
+    border: 2px solid var(--border2);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .no-data {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text3);
+    gap: 8px;
+    font-size: 13px;
+  }
+
+  .no-data-icon { font-size: 32px; opacity: 0.4; }
+
+  select, input { color-scheme: dark; }
+
+  .separator {
+    height: 1px;
+    background: var(--border);
+    margin: 4px 0;
+  }
+
+  .match-count-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    color: var(--text3);
+    padding: 0 2px 4px 2px;
+  }
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-logo">LILA BLACK</div>
+  <div class="spinner"></div>
+  <div class="loading-bar"><div class="loading-progress" id="loadingProgress"></div></div>
+  <div class="loading-text" id="loadingText">Initializing telemetry...</div>
+</div>
+
+<header>
+  <div class="logo">LILA<span>/</span>BLACK <span>·</span> LEVEL DESIGNER TELEMETRY</div>
+  <div class="header-stats">
+    <div class="hstat"><div class="hstat-dot"></div><strong id="hMatchCount">—</strong> matches</div>
+    <div class="hstat"><strong id="hEventCount">—</strong> events</div>
+    <div class="hstat"><strong id="hPlayerCount">—</strong> players</div>
+    <div class="hstat" style="color:var(--text3)">Feb 10–14, 2026</div>
+  </div>
+</header>
+
+<div class="app-body">
+
+  <!-- LEFT SIDEBAR -->
+  <div class="sidebar">
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Map</div>
+      <div class="map-tabs">
+        <button class="map-tab active" data-map="AmbroseValley">AMBROSE</button>
+        <button class="map-tab" data-map="GrandRift">RIFT</button>
+        <button class="map-tab" data-map="Lockdown">LOCK</button>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Date</div>
+      <div class="date-pills">
+        <button class="pill active" data-date="all">All</button>
+        <button class="pill" data-date="February_10">Feb 10</button>
+        <button class="pill" data-date="February_11">Feb 11</button>
+        <button class="pill" data-date="February_12">Feb 12</button>
+        <button class="pill" data-date="February_13">Feb 13</button>
+        <button class="pill" data-date="February_14">Feb 14</button>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Overlays</div>
+      <div class="overlay-toggles">
+        <div class="toggle-row" data-overlay="human_paths">
+          <div class="toggle-label"><div class="dot" style="background:var(--human)"></div>Human Paths</div>
+          <button class="toggle-switch on" id="tog-human_paths"></button>
+        </div>
+        <div class="toggle-row" data-overlay="bot_paths">
+          <div class="toggle-label"><div class="dot" style="background:var(--bot)"></div>Bot Paths</div>
+          <button class="toggle-switch on" id="tog-bot_paths"></button>
+        </div>
+        <div class="toggle-row" data-overlay="kills">
+          <div class="toggle-label"><div class="dot" style="background:var(--kill)"></div>Kills & Deaths</div>
+          <button class="toggle-switch on" id="tog-kills"></button>
+        </div>
+        <div class="toggle-row" data-overlay="storm">
+          <div class="toggle-label"><div class="dot" style="background:var(--storm)"></div>Storm Deaths</div>
+          <button class="toggle-switch on" id="tog-storm"></button>
+        </div>
+        <div class="toggle-row" data-overlay="loot">
+          <div class="toggle-label"><div class="dot" style="background:var(--loot)"></div>Loot Pickups</div>
+          <button class="toggle-switch" id="tog-loot"></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Heatmap</div>
+      <select class="heatmap-select" id="heatmapSelect">
+        <option value="none">None</option>
+        <option value="traffic">Traffic Density</option>
+        <option value="kills">Kill Zones</option>
+        <option value="deaths">Death Zones</option>
+        <option value="storm_deaths">Storm Death Zones</option>
+        <option value="loot">Loot Hotspots</option>
+      </select>
+    </div>
+
+    <div style="padding:8px; border-bottom:1px solid var(--border);">
+      <input type="text" class="match-search" id="matchSearch" placeholder="Search match ID...">
+      <div class="match-count-label" id="matchCountLabel"></div>
+    </div>
+
+    <div class="match-list-wrap" id="matchList">
+      <div class="no-data"><div class="no-data-icon">⏳</div>Loading...</div>
+    </div>
+
+  </div>
+
+  <!-- CENTER MAP -->
+  <div class="map-area">
+    <div class="map-toolbar">
+      <div class="toolbar-label">VIEWING</div>
+      <div class="map-name-badge" id="mapNameBadge">AmbroseValley</div>
+      <div class="toolbar-label" style="margin-left:8px" id="matchLabel">All Matches</div>
+      <div class="timeline-wrap">
+        <div class="toolbar-label">PLAYBACK</div>
+        <button class="play-btn" id="playBtn" title="Play/Pause">▶</button>
+        <input type="range" class="timeline-slider" id="timelineSlider" min="0" max="100" value="0">
+        <div class="timeline-val" id="timelineVal">0ms</div>
+      </div>
+    </div>
+
+    <div class="canvas-container" id="canvasContainer">
+      <canvas id="mapCanvas"></canvas>
+      <canvas id="overlayCanvas"></canvas>
+      <div class="zoom-controls">
+        <button class="zoom-btn" id="zoomIn">+</button>
+        <button class="zoom-btn" id="zoomOut">−</button>
+        <button class="zoom-btn" id="zoomReset" title="Reset view">⌂</button>
+      </div>
+      <div class="map-coords" id="mapCoords">x: — z: —</div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right-panel">
+    <div class="panel-header">
+      <div class="insight-icon">💡</div>
+      <div class="panel-header-title">Designer Insights</div>
+    </div>
+    <div class="panel-body" id="insightPanel">
+      <div class="no-data"><div class="no-data-icon">🗺️</div><span>Select a match or filter to see insights</span></div>
+    </div>
+    <div class="legend">
+      <div class="legend-title">Legend</div>
+      <div class="legend-items">
+        <div class="legend-item"><div class="legend-line" style="background:var(--human)"></div>Human path</div>
+        <div class="legend-item"><div class="legend-line" style="background:var(--bot)"></div>Bot path</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--kill)"></div>Kill</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--death)"></div>Death</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--storm); opacity:0.9"></div>Storm death</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--loot)"></div>Loot</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// =====================================================================
+// DATA LAYER
+// =====================================================================
+const MAP_CONFIG = {
+  AmbroseValley: { scale: 900, origin_x: -370, origin_z: -473, image: 'AmbroseValley_Minimap.png' },
+  GrandRift: { scale: 581, origin_x: -290, origin_z: -290, image: 'GrandRift_Minimap.png' },
+  Lockdown: { scale: 1000, origin_x: -500, origin_z: -500, image: 'Lockdown_Minimap.jpg' },
+};
+
+// Column indices for compact event format
+// [match_id, user_id, is_bot, event, px, py, ts_rel]
+const COL = { match_id:0, user_id:1, is_bot:2, event:3, px:4, py:5, ts_rel:6 };
+const ACTION_EVENTS = new Set(['Kill','Killed','BotKill','BotKilled','KilledByStorm','Loot']);
+const KILL_EVENTS = new Set(['Kill','BotKill']);
+const DEATH_EVENTS = new Set(['Killed','BotKilled']);
+
+const state = {
+  currentMap: 'AmbroseValley',
+  currentDate: 'all',
+  currentMatch: null,
+  overlays: { human_paths: true, bot_paths: true, kills: true, storm: true, loot: false },
+  heatmapMode: 'none',
+  allData: {},       // map -> array of compact events
+  heatmaps: {},
+  matchSummaries: [],
+  filteredMatches: [],
+  timelineValue: 0,
+  isPlaying: false,
+  playInterval: null,
+};
+
+// Canvas / view state
+const view = { scale: 1, offsetX: 0, offsetY: 0, isDragging: false, lastX: 0, lastY: 0 };
+const mapImages = {};
+
+// =====================================================================
+// LOAD DATA
+// =====================================================================
+async function loadData() {
+  const setProgress = (p, msg) => {
+    document.getElementById('loadingProgress').style.width = p + '%';
+    document.getElementById('loadingText').textContent = msg;
+  };
+
+  try {
+    setProgress(10, 'Loading match index...');
+    const msResp = await fetch('match_summaries.json');
+    state.matchSummaries = await msResp.json();
+
+    setProgress(25, 'Loading AmbroseValley data...');
+    const avResp = await fetch('data_AmbroseValley.json');
+    state.allData.AmbroseValley = await avResp.json();
+
+    setProgress(50, 'Loading GrandRift data...');
+    const grResp = await fetch('data_GrandRift.json');
+    state.allData.GrandRift = await grResp.json();
+
+    setProgress(65, 'Loading Lockdown data...');
+    const lkResp = await fetch('data_Lockdown.json');
+    state.allData.Lockdown = await lkResp.json();
+
+    setProgress(80, 'Loading heatmaps...');
+    const hmResp = await fetch('heatmaps.json');
+    state.heatmaps = await hmResp.json();
+
+    setProgress(88, 'Loading minimap images...');
+    await Promise.all(Object.keys(MAP_CONFIG).map(m => loadMapImage(m)));
+
+    setProgress(100, 'Ready');
+    await new Promise(r => setTimeout(r, 300));
+
+    document.getElementById('loadingOverlay').style.display = 'none';
+    init();
+  } catch(e) {
+    document.getElementById('loadingText').textContent = 'Error loading data: ' + e.message;
+    console.error(e);
+  }
+}
+
+function loadMapImage(mapId) {
+  return new Promise((res) => {
+    const img = new Image();
+    img.onload = () => { mapImages[mapId] = img; res(); };
+    img.onerror = () => res();
+    img.src = MAP_CONFIG[mapId].image;
+  });
+}
+
+// =====================================================================
+// INIT
+// =====================================================================
+function init() {
+  // Header stats
+  const uniquePlayers = new Set(state.matchSummaries.flatMap(m => m.humans)).size;
+  document.getElementById('hMatchCount').textContent = state.matchSummaries.length;
+  document.getElementById('hEventCount').textContent = '89k';
+  document.getElementById('hPlayerCount').textContent = '339';
+
+  setupCanvas();
+  setupEventListeners();
+  applyFilters();
+  resetView();
+  render();
+}
+
+// =====================================================================
+// CANVAS SETUP
+// =====================================================================
+function setupCanvas() {
+  const container = document.getElementById('canvasContainer');
+  const mapCanvas = document.getElementById('mapCanvas');
+  const overlayCanvas = document.getElementById('overlayCanvas');
+  const SIZE = 1024;
+  mapCanvas.width = SIZE;
+  mapCanvas.height = SIZE;
+  overlayCanvas.width = SIZE;
+  overlayCanvas.height = SIZE;
+}
+
+function resetView() {
+  const container = document.getElementById('canvasContainer');
+  const w = container.clientWidth;
+  const h = container.clientHeight;
+  const SIZE = 1024;
+  view.scale = Math.min(w, h) / SIZE * 0.95;
+  view.offsetX = (w - SIZE * view.scale) / 2;
+  view.offsetY = (h - SIZE * view.scale) / 2;
+  applyTransform();
+}
+
+function applyTransform() {
+  const t = `translate(${view.offsetX}px,${view.offsetY}px) scale(${view.scale})`;
+  document.getElementById('mapCanvas').style.transform = t;
+  document.getElementById('overlayCanvas').style.transform = t;
+}
+
+// =====================================================================
+// EVENT LISTENERS
+// =====================================================================
+function setupEventListeners() {
+  // Map tabs
+  document.querySelectorAll('.map-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.map-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      state.currentMap = btn.dataset.map;
+      state.currentMatch = null;
+      document.getElementById('mapNameBadge').textContent = state.currentMap;
+      applyFilters();
+      resetView();
+      render();
+    });
+  });
+
+  // Date pills
+  document.querySelectorAll('.pill[data-date]').forEach(p => {
+    p.addEventListener('click', () => {
+      document.querySelectorAll('.pill[data-date]').forEach(x => x.classList.remove('active'));
+      p.classList.add('active');
+      state.currentDate = p.dataset.date;
+      state.currentMatch = null;
+      applyFilters();
+      render();
+    });
+  });
+
+  // Overlay toggles
+  document.querySelectorAll('.toggle-row').forEach(row => {
+    row.addEventListener('click', () => {
+      const key = row.dataset.overlay;
+      state.overlays[key] = !state.overlays[key];
+      const btn = document.getElementById('tog-' + key);
+      btn.classList.toggle('on', state.overlays[key]);
+      render();
+    });
+  });
+
+  // Heatmap select
+  document.getElementById('heatmapSelect').addEventListener('change', e => {
+    state.heatmapMode = e.target.value;
+    render();
+  });
+
+  // Match search
+  document.getElementById('matchSearch').addEventListener('input', e => {
+    renderMatchList();
+  });
+
+  // Timeline
+  const slider = document.getElementById('timelineSlider');
+  slider.addEventListener('input', () => {
+    state.timelineValue = parseInt(slider.value);
+    document.getElementById('timelineVal').textContent = state.timelineValue + 'ms';
+    render();
+  });
+
+  // Play button
+  document.getElementById('playBtn').addEventListener('click', togglePlay);
+
+  // Zoom
+  document.getElementById('zoomIn').addEventListener('click', () => zoom(1.3));
+  document.getElementById('zoomOut').addEventListener('click', () => zoom(0.77));
+  document.getElementById('zoomReset').addEventListener('click', resetView);
+
+  // Pan + zoom on canvas
+  const container = document.getElementById('canvasContainer');
+  container.addEventListener('mousedown', e => {
+    view.isDragging = true;
+    view.lastX = e.clientX;
+    view.lastY = e.clientY;
+  });
+
+  window.addEventListener('mousemove', e => {
+    if (view.isDragging) {
+      view.offsetX += e.clientX - view.lastX;
+      view.offsetY += e.clientY - view.lastY;
+      view.lastX = e.clientX;
+      view.lastY = e.clientY;
+      applyTransform();
+    }
+    // Update coords display
+    const rect = container.getBoundingClientRect();
+    const px = (e.clientX - rect.left - view.offsetX) / view.scale;
+    const py = (e.clientY - rect.top - view.offsetY) / view.scale;
+    const wCoords = pxToWorld(px, py, state.currentMap);
+    if (wCoords) {
+      document.getElementById('mapCoords').textContent = `x: ${wCoords.x.toFixed(0)}  z: ${wCoords.z.toFixed(0)}`;
+    }
+  });
+
+  window.addEventListener('mouseup', () => { view.isDragging = false; });
+
+  container.addEventListener('wheel', e => {
+    e.preventDefault();
+    const rect = container.getBoundingClientRect();
+    const cx = e.clientX - rect.left;
+    const cy = e.clientY - rect.top;
+    const factor = e.deltaY < 0 ? 1.15 : 0.87;
+    const newScale = Math.max(0.2, Math.min(8, view.scale * factor));
+    const ratio = newScale / view.scale;
+    view.offsetX = cx - (cx - view.offsetX) * ratio;
+    view.offsetY = cy - (cy - view.offsetY) * ratio;
+    view.scale = newScale;
+    applyTransform();
+  }, { passive: false });
+}
+
+function zoom(factor) {
+  const container = document.getElementById('canvasContainer');
+  const cx = container.clientWidth / 2;
+  const cy = container.clientHeight / 2;
+  const newScale = Math.max(0.2, Math.min(8, view.scale * factor));
+  const ratio = newScale / view.scale;
+  view.offsetX = cx - (cx - view.offsetX) * ratio;
+  view.offsetY = cy - (cy - view.offsetY) * ratio;
+  view.scale = newScale;
+  applyTransform();
+}
+
+function pxToWorld(px, py, mapId) {
+  const cfg = MAP_CONFIG[mapId];
+  if (!cfg) return null;
+  const u = px / 1024;
+  const v = 1 - py / 1024;
+  return {
+    x: u * cfg.scale + cfg.origin_x,
+    z: v * cfg.scale + cfg.origin_z
+  };
+}
+
+// =====================================================================
+// PLAYBACK
+// =====================================================================
+function togglePlay() {
+  state.isPlaying = !state.isPlaying;
+  document.getElementById('playBtn').textContent = state.isPlaying ? '⏸' : '▶';
+  if (state.isPlaying) {
+    if (state.timelineValue >= 100) state.timelineValue = 0;
+    state.playInterval = setInterval(() => {
+      state.timelineValue = Math.min(100, state.timelineValue + 1);
+      document.getElementById('timelineSlider').value = state.timelineValue;
+      document.getElementById('timelineVal').textContent = state.timelineValue + 'ms';
+      render();
+      if (state.timelineValue >= 100) {
+        clearInterval(state.playInterval);
+        state.isPlaying = false;
+        document.getElementById('playBtn').textContent = '▶';
+      }
+    }, 50);
+  } else {
+    clearInterval(state.playInterval);
+  }
+}
+
+// =====================================================================
+// DATA FILTERING
+// =====================================================================
+function applyFilters() {
+  let matches = state.matchSummaries.filter(m => m.map === state.currentMap);
+  if (state.currentDate !== 'all') {
+    matches = matches.filter(m => m.date === state.currentDate);
+  }
+  state.filteredMatches = matches.sort((a,b) => (b.num_humans+b.num_bots) - (a.num_humans+a.num_bots));
+  renderMatchList();
+  updateInsightPanel();
+}
+
+function getVisibleEvents() {
+  let evts = state.allData[state.currentMap] || [];
+
+  if (state.currentDate !== 'all') {
+    const matchIds = new Set(state.filteredMatches.map(m => m.match_id));
+    evts = evts.filter(e => matchIds.has(e[COL.match_id]));
+  }
+
+  if (state.currentMatch) {
+    evts = evts.filter(e => e[COL.match_id] === state.currentMatch);
+  }
+
+  // Timeline filter if a specific match is selected
+  if (state.currentMatch && state.timelineValue < 100) {
+    const maxTs = state.timelineValue * 9; // 0-900ms range
+    evts = evts.filter(e => e[COL.ts_rel] <= maxTs);
+  }
+
+  return evts;
+}
+
+// =====================================================================
+// MATCH LIST RENDER
+// =====================================================================
+function renderMatchList() {
+  const search = document.getElementById('matchSearch').value.toLowerCase();
+  let matches = state.filteredMatches;
+  if (search) {
+    matches = matches.filter(m => m.match_id.toLowerCase().includes(search));
+  }
+
+  document.getElementById('matchCountLabel').textContent = `${matches.length} matches`;
+
+  const container = document.getElementById('matchList');
+  if (matches.length === 0) {
+    container.innerHTML = '<div class="no-data"><div class="no-data-icon">🔍</div>No matches found</div>';
+    return;
+  }
+
+  // Show top 60 matches to keep DOM light
+  const shown = matches.slice(0, 60);
+
+  let html = '';
+  // Add "All" option
+  const allActive = state.currentMatch === null;
+  html += `<div class="match-card ${allActive ? 'active' : ''}" data-match="">
+    <div class="match-id-text">ALL MATCHES</div>
+    <div class="match-meta">
+      <span class="badge">${matches.length} matches</span>
+    </div>
+  </div>`;
+
+  for (const m of shown) {
+    const shortId = m.match_id.substring(0, 8) + '…';
+    const active = state.currentMatch === m.match_id;
+    html += `<div class="match-card ${active ? 'active' : ''}" data-match="${m.match_id}">
+      <div class="match-id-text">${shortId}</div>
+      <div class="match-meta">
+        ${m.num_humans > 0 ? `<span class="badge human">👤 ${m.num_humans}</span>` : ''}
+        ${m.num_bots > 0 ? `<span class="badge bot">🤖 ${m.num_bots}</span>` : ''}
+        ${m.kills > 0 ? `<span class="badge kill">⚔ ${m.kills}</span>` : ''}
+        ${m.storm_deaths > 0 ? `<span class="badge storm">🌀 ${m.storm_deaths}</span>` : ''}
+        ${m.loot_pickups > 0 ? `<span class="badge loot">📦 ${m.loot_pickups}</span>` : ''}
+      </div>
+    </div>`;
+  }
+
+  container.innerHTML = html;
+
+  container.querySelectorAll('.match-card').forEach(card => {
+    card.addEventListener('click', () => {
+      state.currentMatch = card.dataset.match || null;
+      state.timelineValue = 0;
+      document.getElementById('timelineSlider').value = 0;
+      document.getElementById('timelineVal').textContent = '0ms';
+      if (state.isPlaying) togglePlay();
+      document.getElementById('matchLabel').textContent = state.currentMatch ? `Match: ${state.currentMatch.substring(0,8)}…` : 'All Matches';
+      renderMatchList();
+      updateInsightPanel();
+      render();
+    });
+  });
+}
+
+// =====================================================================
+// INSIGHT PANEL
+// =====================================================================
+function updateInsightPanel() {
+  const panel = document.getElementById('insightPanel');
+  const map = state.currentMap;
+  const evts = getVisibleEvents();
+  const matches = state.filteredMatches;
+
+  if (evts.length === 0) {
+    panel.innerHTML = '<div class="no-data"><div class="no-data-icon">📊</div><span>No data for this selection</span></div>';
+    return;
+  }
+
+  // Compute stats
+  const actionEvts = evts.filter(e => ACTION_EVENTS.has(e[COL.event]));
+  const killEvts = evts.filter(e => KILL_EVENTS.has(e[COL.event]));
+  const deathEvts = evts.filter(e => DEATH_EVENTS.has(e[COL.event]));
+  const stormEvts = evts.filter(e => e[COL.event] === 'KilledByStorm');
+  const lootEvts = evts.filter(e => e[COL.event] === 'Loot');
+  const humanEvts = evts.filter(e => !e[COL.is_bot]);
+  const botEvts = evts.filter(e => e[COL.is_bot]);
+
+  const totalPos = evts.filter(e => !ACTION_EVENTS.has(e[COL.event])).length;
+  const humanPos = humanEvts.filter(e => !ACTION_EVENTS.has(e[COL.event])).length;
+  const botPos = botEvts.filter(e => !ACTION_EVENTS.has(e[COL.event])).length;
+
+  // Compute dominant quadrant for human traffic
+  const qCounts = { NW:0, NE:0, SW:0, SE:0 };
+  humanEvts.filter(e => !ACTION_EVENTS.has(e[COL.event])).forEach(e => {
+    const qx = e[COL.px] < 512 ? 'W' : 'E';
+    const qy = e[COL.py] < 512 ? 'N' : 'S';
+    qCounts[qy+qx]++;
+  });
+  const domQ = Object.entries(qCounts).sort((a,b)=>b[1]-a[1])[0];
+  const lowQ = Object.entries(qCounts).sort((a,b)=>a[1]-b[1])[0];
+  const qTotal = Object.values(qCounts).reduce((s,v)=>s+v,0);
+  const domQPct = qTotal > 0 ? Math.round(domQ[1]/qTotal*100) : 0;
+  const lowQPct = qTotal > 0 ? Math.round(lowQ[1]/qTotal*100) : 0;
+
+  // Storm clustering
+  let stormZone = '';
+  if (stormEvts.length > 0) {
+    const avgPx = stormEvts.reduce((s,e)=>s+e[COL.px],0)/stormEvts.length;
+    const avgPy = stormEvts.reduce((s,e)=>s+e[COL.py],0)/stormEvts.length;
+    stormZone = `${avgPx<512?'west':'east'} ${avgPy<512?'north':'south'}`;
+  }
+
+  // Bot ratio
+  const botRatio = totalPos > 0 ? Math.round(botPos/totalPos*100) : 0;
+
+  // Loot per match
+  const lootPerMatch = matches.length > 0 ? (lootEvts.length / matches.length).toFixed(1) : '—';
+
+  let html = '';
+
+  // Stat grid
+  html += `<div class="stat-grid">
+    <div class="stat-box"><div class="stat-val accent">${matches.length}</div><div class="stat-lbl">Matches</div></div>
+    <div class="stat-box"><div class="stat-val">${killEvts.length + deathEvts.length}</div><div class="stat-lbl">Combat Events</div></div>
+    <div class="stat-box"><div class="stat-val storm">${stormEvts.length}</div><div class="stat-lbl">Storm Deaths</div></div>
+    <div class="stat-box"><div class="stat-val loot">${lootEvts.length}</div><div class="stat-lbl">Loot Pickups</div></div>
+  </div>`;
+
+  // Insight 1: Traffic imbalance
+  if (qTotal > 10) {
+    const isHighImbalance = domQPct > 45;
+    html += `<div class="insight-card ${isHighImbalance ? 'warn' : 'info'}">
+      <div class="insight-tag">${isHighImbalance ? '⚠ TRAFFIC IMBALANCE' : 'ℹ TRAFFIC PATTERN'}</div>
+      <div class="insight-title">${domQ[0]} quadrant dominates with ${domQPct}% of player traffic</div>
+      <div class="insight-body">The ${lowQ[0]} quadrant sees only ${lowQPct}% of activity. ${isHighImbalance ? 'This uneven flow suggests players are being funneled toward one corner — likely due to loot density or sightline advantages.' : 'Moderate traffic distribution across the map.'}</div>
+      ${isHighImbalance ? `<div class="insight-action">→ Review loot table density in ${lowQ[0]} quadrant. Consider adding high-value points of interest to draw players there. Monitor: player engagement rate by zone.</div>` : ''}
+    </div>`;
+  }
+
+  // Insight 2: Storm deaths
+  if (stormEvts.length > 0) {
+    const pct = matches.length > 0 ? Math.round(stormEvts.length/matches.length*100) : 0;
+    const isHigh = stormEvts.length >= 5;
+    html += `<div class="insight-card ${isHigh ? 'danger' : 'info'}">
+      <div class="insight-tag">${isHigh ? '🌀 STORM PRESSURE' : 'ℹ STORM ACTIVITY'}</div>
+      <div class="insight-title">${stormEvts.length} storm deaths${stormZone ? ` concentrated in ${stormZone}` : ''}</div>
+      <div class="insight-body">${isHigh ? `Storm is claiming players at a high rate${stormZone ? ` in the ${stormZone} of the map` : ''}. This may mean the storm collapse timing is too aggressive, or safe-zone indicators are unclear in this area.` : 'Storm deaths are within normal range.'}</div>
+      ${isHigh ? `<div class="insight-action">→ Add earlier storm warning VFX in high-death zones. Consider widening initial safe zone ring. Metric: player survival time vs storm phase.</div>` : ''}
+    </div>`;
+  }
+
+  // Insight 3: Bot ratio
+  html += `<div class="insight-card ${botRatio > 45 ? 'warn' : 'good'}">
+    <div class="insight-tag">${botRatio > 45 ? '⚠ HIGH BOT RATIO' : '✓ PLAYER MIX'}</div>
+    <div class="insight-title">Bot traffic is ${botRatio}% of movement data${botRatio > 45 ? ' — may skew analysis' : ''}</div>
+    <div class="insight-body">${botRatio > 45 ? 'High bot presence inflates activity in certain zones. Heatmaps showing traffic density may not reflect genuine human behavior. Filter to human-only paths for accurate zone analysis.' : `Healthy mix: ~${100-botRatio}% human movement data. Heatmaps are representative of real player behavior.`}</div>
+    ${botRatio > 45 ? `<div class="insight-action">→ Toggle off Bot Paths overlay for cleaner human-only analysis. Bot patrol routes may be creating artificial hotspots.</div>` : ''}
+  </div>`;
+
+  // Insight 4: Loot distribution
+  if (lootEvts.length > 0) {
+    const avgLoot = parseFloat(lootPerMatch);
+    const isLow = avgLoot < 5;
+    html += `<div class="insight-card ${isLow ? 'warn' : 'good'}">
+      <div class="insight-tag">${isLow ? '⚠ LOW LOOT RATE' : '✓ LOOT ACTIVITY'}</div>
+      <div class="insight-title">${lootPerMatch} loot pickups per match on average</div>
+      <div class="insight-body">${isLow ? 'Players are looting infrequently. This could indicate sparse loot spawns, players dying before reaching loot zones, or matches ending too quickly for loot loops to develop.' : 'Players are actively looting — loot density appears appropriate for match pacing.'}</div>
+      ${isLow ? `<div class="insight-action">→ Increase loot spawn density in early-game zones, or extend match duration. Monitor: time-to-first-loot per match.</div>` : ''}
+    </div>`;
+  }
+
+  // Map-specific known insights
+  if (map === 'AmbroseValley' && !state.currentMatch) {
+    html += `<div class="insight-card info">
+      <div class="insight-tag">📌 MAP NOTE · AMBROSE VALLEY</div>
+      <div class="insight-title">NW quadrant sees 2× more traffic than SE</div>
+      <div class="insight-body">Across 566 matches, the northwest sector consistently draws ~39% of player movement vs ~10% in the southeast. This is the most-played map (71% of all sessions).</div>
+      <div class="insight-action">→ Check if SE terrain or loot is undertuned. Use Traffic heatmap to identify dead zones for POI placement.</div>
+    </div>`;
+  }
+
+  if (map === 'GrandRift' && !state.currentMatch) {
+    html += `<div class="insight-card warn">
+      <div class="insight-tag">⚠ LOW PLAY RATE · GRAND RIFT</div>
+      <div class="insight-title">Only 59 matches vs 566 for AmbroseValley</div>
+      <div class="insight-body">GrandRift has the lowest match count (7.4% of total) and the highest bot ratio (~49%). It may be in rotation less frequently, or players may be avoiding it.</div>
+      <div class="insight-action">→ Investigate player retention: do sessions end earlier here? Check if bot ratio inflates perceived activity. Metric: match completion rate by map.</div>
+    </div>`;
+  }
+
+  if (map === 'Lockdown' && !state.currentMatch) {
+    html += `<div class="insight-card info">
+      <div class="insight-tag">📌 MAP NOTE · LOCKDOWN</div>
+      <div class="insight-title">Highest storm death rate: 17 deaths in 171 matches</div>
+      <div class="insight-body">Storm deaths per match (~0.10) are higher than AmbroseValley (~0.03) and comparable to GrandRift. The confined map may make storm avoidance harder, or players are being caught extracting.</div>
+      <div class="insight-action">→ Review storm path direction on Lockdown. Add extraction waypoint visibility to reduce reactive storm deaths. Metric: storm deaths by match phase.</div>
+    </div>`;
+  }
+
+  panel.innerHTML = html;
+}
+
+// =====================================================================
+// RENDER
+// =====================================================================
+function render() {
+  renderMap();
+  renderOverlay();
+}
+
+function renderMap() {
+  const canvas = document.getElementById('mapCanvas');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, 1024, 1024);
+
+  // Draw minimap
+  const img = mapImages[state.currentMap];
+  if (img) {
+    ctx.drawImage(img, 0, 0, 1024, 1024);
+  } else {
+    ctx.fillStyle = '#151a22';
+    ctx.fillRect(0, 0, 1024, 1024);
+  }
+
+  // Dark overlay for better visibility
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.fillRect(0, 0, 1024, 1024);
+
+  // Draw heatmap
+  if (state.heatmapMode !== 'none') {
+    drawHeatmap(ctx);
+  }
+}
+
+function renderOverlay() {
+  const canvas = document.getElementById('overlayCanvas');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, 1024, 1024);
+
+  const evts = getVisibleEvents();
+  if (evts.length === 0) return;
+
+  // Group by match and user for path drawing
+  const pathMap = new Map(); // key = match+user -> [{px,py,ts_rel,is_bot}]
+
+  for (const e of evts) {
+    if (ACTION_EVENTS.has(e[COL.event])) continue;
+    const isBot = e[COL.is_bot];
+    if (!state.overlays.human_paths && !isBot) continue;
+    if (!state.overlays.bot_paths && isBot) continue;
+
+    const key = e[COL.match_id] + '|' + e[COL.user_id];
+    if (!pathMap.has(key)) pathMap.set(key, []);
+    pathMap.get(key).push({ px: e[COL.px], py: e[COL.py], ts: e[COL.ts_rel], isBot });
+  }
+
+  // Draw paths
+  ctx.lineWidth = 1;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  for (const [key, points] of pathMap) {
+    if (points.length < 2) continue;
+    points.sort((a,b)=>a.ts - b.ts);
+    const isBot = points[0].isBot;
+
+    if (isBot) {
+      ctx.strokeStyle = 'rgba(84,110,122,0.35)';
+      ctx.lineWidth = 0.8;
+    } else {
+      ctx.strokeStyle = 'rgba(0,180,216,0.55)';
+      ctx.lineWidth = 1.2;
+    }
+
+    ctx.beginPath();
+    let started = false;
+    for (const pt of points) {
+      if (pt.px < 0 || pt.py < 0) continue;
+      if (!started) { ctx.moveTo(pt.px, pt.py); started = true; }
+      else ctx.lineTo(pt.px, pt.py);
+    }
+    ctx.stroke();
+
+    // Draw start dot (first point)
+    if (started && !isBot) {
+      ctx.fillStyle = 'rgba(0,229,255,0.8)';
+      ctx.beginPath();
+      ctx.arc(points[0].px, points[0].py, 2.5, 0, Math.PI*2);
+      ctx.fill();
+    }
+  }
+
+  // Draw action events
+  for (const e of evts) {
+    if (!ACTION_EVENTS.has(e[COL.event])) continue;
+    const px = e[COL.px];
+    const py = e[COL.py];
+    if (px < 0 || py < 0) continue;
+    const evt = e[COL.event];
+
+    if ((evt === 'Kill' || evt === 'BotKill') && state.overlays.kills) {
+      drawEventMarker(ctx, px, py, '×', '#ff4455', 5);
+    } else if ((evt === 'Killed' || evt === 'BotKilled') && state.overlays.kills) {
+      drawEventMarker(ctx, px, py, '○', '#ff8c00', 4);
+    } else if (evt === 'KilledByStorm' && state.overlays.storm) {
+      drawEventMarker(ctx, px, py, '◆', '#b04dff', 5);
+    } else if (evt === 'Loot' && state.overlays.loot) {
+      drawLootMarker(ctx, px, py);
+    }
+  }
+}
+
+function drawEventMarker(ctx, px, py, symbol, color, r) {
+  ctx.save();
+  // Glow
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 8;
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(px, py, r, 0, Math.PI*2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawLootMarker(ctx, px, py) {
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,230,118,0.5)';
+  ctx.strokeStyle = '#00e676';
+  ctx.lineWidth = 0.8;
+  ctx.beginPath();
+  ctx.arc(px, py, 2.5, 0, Math.PI*2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawHeatmap(ctx) {
+  const hmData = state.heatmaps[state.currentMap];
+  if (!hmData) return;
+  const data = hmData[state.heatmapMode];
+  if (!data) return;
+
+  const GRID = 64;
+  const cellSize = 1024 / GRID;
+
+  // Find max for normalization
+  let max = 0;
+  for (let y = 0; y < GRID; y++)
+    for (let x = 0; x < GRID; x++)
+      if (data[y][x] > max) max = data[y][x];
+
+  if (max === 0) return;
+
+  const colorStops = {
+    traffic: [[0,0,255],[0,255,255],[0,255,0],[255,255,0],[255,0,0]],
+    kills: [[255,200,0],[255,100,0],[255,0,0]],
+    deaths: [[255,150,0],[255,80,0],[200,0,0]],
+    storm_deaths: [[100,0,255],[160,0,255],[200,80,255]],
+    loot: [[0,100,100],[0,200,100],[0,255,120]],
+  };
+
+  const stops = colorStops[state.heatmapMode] || colorStops.traffic;
+
+  for (let y = 0; y < GRID; y++) {
+    for (let x = 0; x < GRID; x++) {
+      const v = data[y][x] / max;
+      if (v < 0.02) continue;
+
+      const t = Math.min(1, v);
+      const si = Math.min(stops.length-2, Math.floor(t * (stops.length-1)));
+      const sf = t * (stops.length-1) - si;
+      const c0 = stops[si], c1 = stops[Math.min(stops.length-1, si+1)];
+      const r = Math.round(c0[0] + (c1[0]-c0[0]) * sf);
+      const g = Math.round(c0[1] + (c1[1]-c0[1]) * sf);
+      const b = Math.round(c0[2] + (c1[2]-c0[2]) * sf);
+      const a = Math.min(0.75, 0.15 + v * 0.7);
+
+      ctx.fillStyle = `rgba(${r},${g},${b},${a})`;
+      ctx.fillRect(x * cellSize, y * cellSize, cellSize+1, cellSize+1);
+    }
+  }
+}
+
+// =====================================================================
+// BOOT
+// =====================================================================
+loadData();
+</script>
+</body>
+</html>
