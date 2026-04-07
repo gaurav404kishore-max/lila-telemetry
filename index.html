@@ -865,7 +865,8 @@ const state = {
   heatmaps: {},
   matchSummaries: [],
   filteredMatches: [],
-  timelineValue: 0,
+  timelineValue: 0,   // 0–100 slider percentage
+  matchMaxTs: 900,    // actual max ts_rel (ms) for selected match — used to scale slider
   isPlaying: false,
   playInterval: null,
 };
@@ -1031,7 +1032,8 @@ function setupEventListeners() {
   const slider = document.getElementById('timelineSlider');
   slider.addEventListener('input', () => {
     state.timelineValue = parseInt(slider.value);
-    document.getElementById('timelineVal').textContent = state.timelineValue + 'ms';
+    const realMs = Math.round((state.timelineValue / 100) * state.matchMaxTs);
+    document.getElementById('timelineVal').textContent = realMs + 'ms';
     render();
   });
 
@@ -1115,21 +1117,44 @@ function pxToWorld(px, py, mapId) {
 function togglePlay() {
   state.isPlaying = !state.isPlaying;
   document.getElementById('playBtn').textContent = state.isPlaying ? '⏸' : '▶';
+
   if (state.isPlaying) {
-    if (state.timelineValue >= 100) state.timelineValue = 0;
-    state.playInterval = setInterval(() => {
-      state.timelineValue = Math.min(100, state.timelineValue + 1);
+    if (state.timelineValue >= 100) {
+      state.timelineValue = 0;
+      document.getElementById('timelineSlider').value = 0;
+      document.getElementById('timelineVal').textContent = '0ms';
+    }
+
+    // Use timestamp-based animation so playback speed is consistent
+    // regardless of frame rate or render cost. One full pass = 6 seconds.
+    const PLAY_DURATION_MS = 6000;
+    const startWallTime = performance.now();
+    const startPct = state.timelineValue;
+
+    function tick(now) {
+      if (!state.isPlaying) return;
+
+      const elapsed = now - startWallTime;
+      const progress = Math.min(1, elapsed / PLAY_DURATION_MS);
+      state.timelineValue = Math.min(100, Math.round(startPct + progress * (100 - startPct)));
+
+      const realMs = Math.round((state.timelineValue / 100) * state.matchMaxTs);
       document.getElementById('timelineSlider').value = state.timelineValue;
-      document.getElementById('timelineVal').textContent = state.timelineValue + 'ms';
+      document.getElementById('timelineVal').textContent = realMs + 'ms';
       render();
+
       if (state.timelineValue >= 100) {
-        clearInterval(state.playInterval);
         state.isPlaying = false;
         document.getElementById('playBtn').textContent = '▶';
+        return;
       }
-    }, 50);
+
+      state.playInterval = requestAnimationFrame(tick);
+    }
+
+    state.playInterval = requestAnimationFrame(tick);
   } else {
-    clearInterval(state.playInterval);
+    cancelAnimationFrame(state.playInterval);
   }
 }
 
@@ -1158,10 +1183,11 @@ function getVisibleEvents() {
     evts = evts.filter(e => e[COL.match_id] === state.currentMatch);
   }
 
-  // Timeline filter if a specific match is selected
-  if (state.currentMatch && state.timelineValue < 100) {
-    const maxTs = state.timelineValue * 9; // 0-900ms range
-    evts = evts.filter(e => e[COL.ts_rel] <= maxTs);
+  // Timeline filter — applies whenever slider is not at 100%
+  // scales against actual match duration (matchMaxTs), not a hardcoded constant
+  if (state.timelineValue < 100) {
+    const cutoffMs = Math.round((state.timelineValue / 100) * state.matchMaxTs);
+    evts = evts.filter(e => e[COL.ts_rel] <= cutoffMs);
   }
 
   return evts;
@@ -1219,6 +1245,17 @@ function renderMatchList() {
     card.addEventListener('click', () => {
       state.currentMatch = card.dataset.match || null;
       state.timelineValue = 0;
+
+      // Compute actual max ts_rel for this match (or all visible matches)
+      // so the slider scales correctly to the real data duration
+      const mapEvts = state.allData[state.currentMap] || [];
+      let relevantEvts = state.currentMatch
+        ? mapEvts.filter(e => e[COL.match_id] === state.currentMatch)
+        : mapEvts;
+      const tsVals = relevantEvts.map(e => e[COL.ts_rel]).filter(t => t >= 0);
+      state.matchMaxTs = tsVals.length > 0 ? Math.max(...tsVals) : 900;
+      if (state.matchMaxTs < 10) state.matchMaxTs = 900; // guard against degenerate matches
+
       document.getElementById('timelineSlider').value = 0;
       document.getElementById('timelineVal').textContent = '0ms';
       if (state.isPlaying) togglePlay();
