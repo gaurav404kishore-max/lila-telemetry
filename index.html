@@ -932,9 +932,10 @@ function loadMapImage(mapId) {
 // INIT
 // =====================================================================
 function init() {
-  // Header stats
-  const uniquePlayers = new Set(state.matchSummaries.flatMap(m => m.humans)).size;
-  document.getElementById('hMatchCount').textContent = state.matchSummaries.length;
+  // Header stats — computed from actual summary data
+  const totalMatches = state.matchSummaries.length;
+  const totalHumans = state.matchSummaries.reduce((s, m) => s + m.num_humans, 0);
+  document.getElementById('hMatchCount').textContent = totalMatches;
   document.getElementById('hEventCount').textContent = '89k';
   document.getElementById('hPlayerCount').textContent = '339';
 
@@ -987,7 +988,13 @@ function setupEventListeners() {
       btn.classList.add('active');
       state.currentMap = btn.dataset.map;
       state.currentMatch = null;
+      state.timelineValue = 0;
+      state.matchMaxTs = 900;
+      document.getElementById('timelineSlider').value = 0;
+      document.getElementById('timelineVal').textContent = '0ms';
+      if (state.isPlaying) togglePlay();
       document.getElementById('mapNameBadge').textContent = state.currentMap;
+      document.getElementById('matchLabel').textContent = 'All Matches';
       applyFilters();
       resetView();
       render();
@@ -1001,6 +1008,12 @@ function setupEventListeners() {
       p.classList.add('active');
       state.currentDate = p.dataset.date;
       state.currentMatch = null;
+      state.timelineValue = 0;
+      state.matchMaxTs = 900;
+      document.getElementById('timelineSlider').value = 0;
+      document.getElementById('timelineVal').textContent = '0ms';
+      if (state.isPlaying) togglePlay();
+      document.getElementById('matchLabel').textContent = 'All Matches';
       applyFilters();
       render();
     });
@@ -1158,6 +1171,21 @@ function togglePlay() {
   }
 }
 
+function getFullMatchEvents() {
+  // Returns all events for the current selection WITHOUT timeline filtering.
+  // Used by the insight panel so stats always reflect the complete match,
+  // not just the portion currently visible on the timeline scrubber.
+  let evts = state.allData[state.currentMap] || [];
+  if (state.currentDate !== 'all') {
+    const matchIds = new Set(state.filteredMatches.map(m => m.match_id));
+    evts = evts.filter(e => matchIds.has(e[COL.match_id]));
+  }
+  if (state.currentMatch) {
+    evts = evts.filter(e => e[COL.match_id] === state.currentMatch);
+  }
+  return evts;
+}
+
 // =====================================================================
 // DATA FILTERING
 // =====================================================================
@@ -1253,8 +1281,10 @@ function renderMatchList() {
         ? mapEvts.filter(e => e[COL.match_id] === state.currentMatch)
         : mapEvts;
       const tsVals = relevantEvts.map(e => e[COL.ts_rel]).filter(t => t >= 0);
-      state.matchMaxTs = tsVals.length > 0 ? Math.max(...tsVals) : 900;
-      if (state.matchMaxTs < 10) state.matchMaxTs = 900; // guard against degenerate matches
+      state.matchMaxTs = tsVals.length > 0
+        ? tsVals.reduce((max, v) => v > max ? v : max, 0)
+        : 900;
+      if (state.matchMaxTs < 10) state.matchMaxTs = 900;
 
       document.getElementById('timelineSlider').value = 0;
       document.getElementById('timelineVal').textContent = '0ms';
@@ -1273,7 +1303,9 @@ function renderMatchList() {
 function updateInsightPanel() {
   const panel = document.getElementById('insightPanel');
   const map = state.currentMap;
-  const evts = getVisibleEvents();
+  // Always use full match data — not timeline-filtered — so stats are never
+  // misleadingly low just because the scrubber is partway through the match.
+  const evts = getFullMatchEvents();
   const matches = state.filteredMatches;
 
   if (evts.length === 0) {
@@ -1517,13 +1549,38 @@ function renderOverlay() {
 
 function drawEventMarker(ctx, px, py, symbol, color, r) {
   ctx.save();
-  // Glow
   ctx.shadowColor = color;
-  ctx.shadowBlur = 8;
+  ctx.shadowBlur = 10;
+  ctx.strokeStyle = color;
   ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.arc(px, py, r, 0, Math.PI*2);
-  ctx.fill();
+  ctx.lineWidth = 2;
+
+  if (symbol === '×') {
+    // Kill — X cross
+    const s = r;
+    ctx.beginPath();
+    ctx.moveTo(px - s, py - s); ctx.lineTo(px + s, py + s);
+    ctx.moveTo(px + s, py - s); ctx.lineTo(px - s, py + s);
+    ctx.stroke();
+  } else if (symbol === '○') {
+    // Death — open ring
+    ctx.beginPath();
+    ctx.arc(px, py, r, 0, Math.PI * 2);
+    ctx.stroke();
+  } else if (symbol === '◆') {
+    // Storm death — filled diamond
+    ctx.beginPath();
+    ctx.moveTo(px, py - r);
+    ctx.lineTo(px + r, py);
+    ctx.lineTo(px, py + r);
+    ctx.lineTo(px - r, py);
+    ctx.closePath();
+    ctx.fill();
+  } else {
+    ctx.beginPath();
+    ctx.arc(px, py, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
   ctx.restore();
 }
 
